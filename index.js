@@ -3,13 +3,13 @@ var fs = require('fs-extra'),
 	keystonePath = 'node_modules'+path.sep+'keystone',
 	keystoneTypesDirPath = path.join(keystonePath,'fields'+path.sep+'types'),
 	keystoneLibFieldTypesFile = path.join(keystonePath,'lib'+path.sep+'fieldTypes.js'),
-	keystoneAdminFieldsFile = path.join(keystonePath,'admin'+path.sep+'src'+path.sep+'fields.js');
+	keystoneAdminFieldsFile = path.join(keystonePath,'admin'+path.sep+'client'+path.sep+'fields.js');
 
 function copyTypesLibs(dirPath){
 	var typesDirs = fs.readdirSync(dirPath).filter(function(file) {
 		return fs.statSync(path.join(dirPath, file)).isDirectory();
 	});
-	
+
 	typesDirs.forEach(function(dir){
 		var keystonePath = path.join(keystoneTypesDirPath, dir),
 			overwrite = true;
@@ -20,7 +20,7 @@ function copyTypesLibs(dirPath){
 		}catch(err){
 			overwrite=false;
 		}
-	
+
 		fs.copySync(path.join(dirPath, dir), path.join(keystoneTypesDirPath, dir));
 
 		console.log((overwrite ? 'Overwrite ' : 'Added ')+'custom fieldType: ' + dir);
@@ -33,7 +33,13 @@ function GetAvailableTypes(){
 	}).map(function(type){
 		var typeDirPath = path.join(keystoneTypesDirPath,type),
 			name = fs.readdirSync(path.join(typeDirPath)).filter(function(file) {
-				return fs.statSync(path.join(typeDirPath, file)).isFile();
+				if (file.match(/.*Column[.]js/)) {
+					return false;
+				}
+				if (file.match(/.*[.]js/)) {
+					return fs.statSync(path.join(typeDirPath, file)).isFile();
+				}
+				return false;
 			})[0];
 
 		return name ? {
@@ -76,16 +82,16 @@ function WriteAdminFile(Types){
 
 	console.log('Updated: ' + keystoneAdminFieldsFile);
 }
- 
+
 module.exports = {
   loadFromDir: function(dirPath) {
-    
+
     dirPath = dirPath || 'fieldTypes';
-    
+
 	var stats = fs.statSync(dirPath);
 	if (!stats.isDirectory())
 		throw 'Path is not a directory';
-	
+
 	copyTypesLibs(dirPath);
 
 	var availableTypes = GetAvailableTypes()
